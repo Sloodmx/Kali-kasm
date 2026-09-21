@@ -2,7 +2,7 @@ FROM kasmweb/kali-rolling-desktop:1.19.0-rolling-weekly
 
 USER root
 
-# Install tools (Ajout de unzip et remplacement de crackmapexec par netexec)
+# Install system dependencies and tools
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
@@ -34,41 +34,41 @@ RUN apt-get update && apt-get install -y \
     netexec \
     && rm -rf /var/lib/apt/lists/*
 
-# SecLists
+# Clone SecLists repository
 RUN git clone --depth 1 https://github.com/danielmiessler/SecLists /usr/share/seclists
 
-# RustScan
+# Install RustScan
 RUN curl -sSL https://github.com/RustScan/RustScan/releases/download/2.3.0/rustscan_2.3.0_amd64.deb -o rustscan.deb \
     && dpkg -i rustscan.deb \
     && rm rustscan.deb
 
-# Nuclei
-RUN curl -LO https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei_linux_amd64.zip \
-    && unzip nuclei_linux_amd64.zip -d /usr/local/bin/ \
-    && rm nuclei_linux_amd64.zip \
+# Install Nuclei
+RUN curl -sSL https://github.com/projectdiscovery/nuclei/releases/download/v3.3.8/nuclei_3.3.8_linux_amd64.zip -o nuclei.zip \
+    && unzip nuclei.zip -d /usr/local/bin/ \
+    && rm nuclei.zip \
     && chmod +x /usr/local/bin/nuclei
 
-# Setup user 1000 home
+# Environment variables for user 1000 home directory
 ENV HOME=/home/kasm-user
 ENV USER_HOME=/home/kasm-user
 
-# Oh-My-Zsh pour kasm-user
+# Setup Oh-My-Zsh for kasm-user
 RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /home/kasm-user/.oh-my-zsh \
     && cp /home/kasm-user/.oh-my-zsh/templates/zshrc.zsh-template /home/kasm-user/.zshrc \
     && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' /home/kasm-user/.zshrc
 
-# Oh-My-Zsh pour root
+# Setup Oh-My-Zsh for root
 RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /root/.oh-my-zsh \
     && cp /root/.oh-my-zsh/templates/zshrc.zsh-template /root/.zshrc \
     && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' /root/.zshrc
 
-# zsh-autosuggestions pour les deux users
+# Install zsh-autosuggestions plugin for both users
 RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/kasm-user/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-user/.zshrc \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /root/.zshrc
 
-# Aliases + config pour les deux users
+# Configure shell aliases and settings for both users
 RUN printf '\
 alias ll="ls -la"\n\
 alias ports="ss -tulpn"\n\
@@ -92,29 +92,29 @@ export SAVEHIST=10000\n\
 setopt HIST_IGNORE_DUPS\n\
 ' >> /root/.zshrc
 
-# Vim config pour les deux users
+# Configure Vim for both users
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
 
-# Synchronisation avec /etc/skel pour la persistance Kasm Workspaces
+# Sync user profile to /etc/skel for Kasm Workspaces session persistence
 RUN cp -r /home/kasm-user/. /etc/skel/
 
-# Fix zsh compinit warning
+# Fix zsh compinit directory permissions warning
 RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
     && chmod 755 /usr/share/zsh/vendor-completions 2>/dev/null || true
 
-# Shell par défaut
+# Change default shell to zsh for both users
 RUN chsh -s /usr/bin/zsh root \
     && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
 
-# Python tools
+# Install Python penetration testing tools
 RUN pip3 install --break-system-packages \
     impacket \
     scapy \
     pwntools \
     bbot
 
-# Permissions finales pour kasm-user (UID 1000)
+# Set final directory permissions for kasm-user (UID 1000)
 RUN chown -R 1000:1000 /home/kasm-user/ /etc/skel/
 
 USER 1000
