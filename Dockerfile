@@ -2,7 +2,7 @@ FROM kasmweb/kali-rolling-desktop:1.19.0-rolling-weekly
 
 USER root
 
-# Install system dependencies and tools
+# Install system tools and build dependencies for Python C-extensions (cmake, gcc, python3-dev)
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
@@ -17,6 +17,10 @@ RUN apt-get update && apt-get install -y \
     zsh \
     gawk \
     python3-pip \
+    python3-dev \
+    build-essential \
+    cmake \
+    libffi-dev \
     git \
     vim \
     netcat-openbsd \
@@ -107,7 +111,7 @@ RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
 RUN chsh -s /usr/bin/zsh root \
     && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
 
-# Install Python penetration testing tools
+# Install Python penetration testing tools (now compiles unicorn/pwntools successfully)
 RUN pip3 install --break-system-packages \
     impacket \
     scapy \
