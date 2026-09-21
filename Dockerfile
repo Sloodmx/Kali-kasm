@@ -2,7 +2,7 @@ FROM kasmweb/kali-rolling-desktop:1.19.0-rolling-weekly
 
 USER root
 
-# Install system tools and build dependencies for Python C-extensions (cmake, gcc, python3-dev)
+# Install system tools, build dependencies, and system-level python-unicorn
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
@@ -18,8 +18,10 @@ RUN apt-get update && apt-get install -y \
     gawk \
     python3-pip \
     python3-dev \
+    python3-unicorn \
     build-essential \
     cmake \
+    pkg-config \
     libffi-dev \
     git \
     vim \
@@ -111,8 +113,8 @@ RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
 RUN chsh -s /usr/bin/zsh root \
     && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
 
-# Install Python penetration testing tools (now compiles unicorn/pwntools successfully)
-RUN pip3 install --break-system-packages \
+# Install Python penetration testing tools using system unicorn engine
+RUN CFLAGS="-Wno-error=implicit-function-declaration" pip3 install --break-system-packages \
     impacket \
     scapy \
     pwntools \
