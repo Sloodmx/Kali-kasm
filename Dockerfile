@@ -77,6 +77,12 @@ RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/k
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-user/.zshrc \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /root/.zshrc
 
+# Fix compinit: redirect zcompdump to /dev/null to suppress "function definition
+# file not found" errors that occur because Kasm doesn't run a full login shell
+# and zsh's fpath isn't fully populated at startup time.
+RUN sed -i '1s|^|ZSH_COMPDUMP=/dev/null\n|' /home/kasm-user/.zshrc \
+    && sed -i '1s|^|ZSH_COMPDUMP=/dev/null\n|' /root/.zshrc
+
 # Configure shell aliases and settings for both users
 RUN printf '\
 alias ll="ls -la"\n\
@@ -104,10 +110,6 @@ setopt HIST_IGNORE_DUPS\n\
 # Configure Vim for both users
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
-
-# Fix zsh compinit directory permissions warning
-RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
-    && chmod 755 /usr/share/zsh/vendor-completions 2>/dev/null || true
 
 # Change default shell to zsh for both users
 RUN chsh -s /usr/bin/zsh root \
