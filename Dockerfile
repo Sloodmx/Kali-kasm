@@ -2,7 +2,7 @@ FROM kasmweb/kali-rolling-desktop:1.19.0-rolling-weekly
 
 USER root
 
-# Install system tools, build dependencies, and system-level python-unicorn
+# Install system tools, build dependencies, and system-level python packages
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
@@ -19,6 +19,9 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-dev \
     python3-unicorn \
+    python3-impacket \
+    python3-scapy \
+    python3-xmltodict \
     build-essential \
     cmake \
     pkg-config \
@@ -102,9 +105,6 @@ setopt HIST_IGNORE_DUPS\n\
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
 
-# Sync user profile to /etc/skel for Kasm Workspaces session persistence
-RUN cp -r /home/kasm-user/. /etc/skel/
-
 # Fix zsh compinit directory permissions warning
 RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
     && chmod 755 /usr/share/zsh/vendor-completions 2>/dev/null || true
@@ -113,12 +113,13 @@ RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
 RUN chsh -s /usr/bin/zsh root \
     && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
 
-# Install Python penetration testing tools using system unicorn engine
-RUN CFLAGS="-Wno-error=implicit-function-declaration" pip3 install --break-system-packages \
-    impacket \
-    scapy \
+# Install Python penetration testing tools bypassing APT conflicts
+RUN PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install --ignore-installed --no-build-isolation \
     pwntools \
     bbot
+
+# Sync user profile to /etc/skel AFTER all configs are generated
+RUN cp -r /home/kasm-user/. /etc/skel/
 
 # Set final directory permissions for kasm-user (UID 1000)
 RUN chown -R 1000:1000 /home/kasm-user/ /etc/skel/
