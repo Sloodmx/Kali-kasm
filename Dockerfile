@@ -2,7 +2,7 @@ FROM kasmweb/kali-rolling-desktop:1.19.0-rolling-weekly
 
 USER root
 
-# Install tools
+# Install tools (Ajout de unzip et remplacement de crackmapexec par netexec)
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     dnsutils \
     curl \
     wget \
+    unzip \
     nmap \
     tmux \
     fzf \
@@ -30,16 +31,16 @@ RUN apt-get update && apt-get install -y \
     ffuf \
     amass \
     evil-winrm \
-    crackmapexec \
+    netexec \
     && rm -rf /var/lib/apt/lists/*
 
 # SecLists
 RUN git clone --depth 1 https://github.com/danielmiessler/SecLists /usr/share/seclists
 
 # RustScan
-RUN curl -LO https://github.com/RustScan/rustscan/releases/latest/download/rustscan_2.3.0_amd64.deb \
-    && dpkg -i rustscan_2.3.0_amd64.deb \
-    && rm rustscan_2.3.0_amd64.deb
+RUN curl -sSL https://github.com/RustScan/RustScan/releases/download/2.3.0/rustscan_2.3.0_amd64.deb -o rustscan.deb \
+    && dpkg -i rustscan.deb \
+    && rm rustscan.deb
 
 # Nuclei
 RUN curl -LO https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei_linux_amd64.zip \
@@ -51,12 +52,12 @@ RUN curl -LO https://github.com/projectdiscovery/nuclei/releases/latest/download
 ENV HOME=/home/kasm-user
 ENV USER_HOME=/home/kasm-user
 
-# Oh-My-Zsh pour user 1000
+# Oh-My-Zsh pour kasm-user
 RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /home/kasm-user/.oh-my-zsh \
     && cp /home/kasm-user/.oh-my-zsh/templates/zshrc.zsh-template /home/kasm-user/.zshrc \
     && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' /home/kasm-user/.zshrc
 
-# Oh-My-Zsh pour root aussi
+# Oh-My-Zsh pour root
 RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /root/.oh-my-zsh \
     && cp /root/.oh-my-zsh/templates/zshrc.zsh-template /root/.zshrc \
     && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' /root/.zshrc
@@ -95,6 +96,9 @@ setopt HIST_IGNORE_DUPS\n\
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
 
+# Synchronisation avec /etc/skel pour la persistance Kasm Workspaces
+RUN cp -r /home/kasm-user/. /etc/skel/
+
 # Fix zsh compinit warning
 RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
     && chmod 755 /usr/share/zsh/vendor-completions 2>/dev/null || true
@@ -103,14 +107,14 @@ RUN chmod 755 /usr/local/share/zsh/site-functions 2>/dev/null || true \
 RUN chsh -s /usr/bin/zsh root \
     && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
 
-# Fix permissions home kasm-user
-RUN chown -R 1000:1000 /home/kasm-user/
-
 # Python tools
 RUN pip3 install --break-system-packages \
     impacket \
     scapy \
     pwntools \
     bbot
+
+# Permissions finales pour kasm-user (UID 1000)
+RUN chown -R 1000:1000 /home/kasm-user/ /etc/skel/
 
 USER 1000
