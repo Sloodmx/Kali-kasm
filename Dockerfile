@@ -111,7 +111,7 @@ setopt HIST_IGNORE_DUPS\n\
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
 
-# Change default shell to zsh for both users
+# Change default shell to zsh for root and kasm-user
 RUN chsh -s /usr/bin/zsh root \
     && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
 
@@ -126,4 +126,4 @@ RUN cp -r /home/kasm-user/. /etc/skel/
 # Set final directory permissions for kasm-user (UID 1000)
 RUN chown -R 1000:1000 /home/kasm-user/ /etc/skel/
 
-USER 1000
+USER root
