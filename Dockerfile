@@ -77,11 +77,14 @@ RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/k
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-user/.zshrc \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /root/.zshrc
 
-# Fix compinit: redirect zcompdump to /dev/null to suppress "function definition
-# file not found" errors that occur because Kasm doesn't run a full login shell
-# and zsh's fpath isn't fully populated at startup time.
+# Fix compinit: redirect zcompdump to /dev/null to suppress warnings,
+# and force compinit with -u to skip insecure directory checks.
+# The FPATH restoration is handled in first_launch (zshenv) so zsh can
+# find its function definition files at runtime.
 RUN sed -i '1s|^|ZSH_COMPDUMP=/dev/null\n|' /home/kasm-user/.zshrc \
-    && sed -i '1s|^|ZSH_COMPDUMP=/dev/null\n|' /root/.zshrc
+    && sed -i '1s|^|ZSH_COMPDUMP=/dev/null\n|' /root/.zshrc \
+    && printf '\n# Ensure compinit loads cleanly\nautoload -Uz compinit 2>/dev/null\ncompinit -u -d /dev/null 2>/dev/null\n' >> /home/kasm-user/.zshrc \
+    && printf '\n# Ensure compinit loads cleanly\nautoload -Uz compinit 2>/dev/null\ncompinit -u -d /dev/null 2>/dev/null\n' >> /root/.zshrc
 
 # Configure shell aliases and settings for both users
 RUN printf '\
