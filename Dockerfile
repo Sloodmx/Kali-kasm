@@ -46,13 +46,15 @@ RUN apt-get update && apt-get install -y \
 # Clone SecLists repository
 RUN git clone --depth 1 https://github.com/danielmiessler/SecLists /usr/share/seclists
 
-# Install RustScan
-RUN curl -sSL https://github.com/RustScan/RustScan/releases/download/2.3.0/rustscan_2.3.0_amd64.deb -o rustscan.deb \
+# Install RustScan - toujours latest
+RUN RUSTSCAN_VERSION=$(curl -s https://api.github.com/repos/RustScan/RustScan/releases/latest | grep '"tag_name"' | cut -d'"' -f4) \
+    && curl -sSL "https://github.com/RustScan/RustScan/releases/download/${RUSTSCAN_VERSION}/rustscan_${RUSTSCAN_VERSION#v}_amd64.deb" -o rustscan.deb \
     && dpkg -i rustscan.deb \
     && rm rustscan.deb
 
-# Install Nuclei
-RUN curl -sSL https://github.com/projectdiscovery/nuclei/releases/download/v3.3.8/nuclei_3.3.8_linux_amd64.zip -o nuclei.zip \
+# Install Nuclei - toujours latest
+RUN NUCLEI_VERSION=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | grep '"tag_name"' | cut -d'"' -f4) \
+    && curl -sSL "https://github.com/projectdiscovery/nuclei/releases/download/${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION#v}_linux_amd64.zip" -o nuclei.zip \
     && unzip nuclei.zip -d /usr/local/bin/ \
     && rm nuclei.zip \
     && chmod +x /usr/local/bin/nuclei
@@ -87,27 +89,33 @@ RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n'
 
 # Set default wallpaper
 COPY wallpaper.jpg /home/kasm-default-profile/.config/wallpaper.jpg
-RUN mkdir -p /home/kasm-default-profile/.config/xfce4/xfconf/xfce-perchannel-xml \
-    && printf '<?xml version="1.0" encoding="UTF-8"?>\n\
-<channel name="xfce4-desktop" version="1.0">\n\
-  <property name="backdrop" type="empty">\n\
-    <property name="screen0" type="empty">\n\
-      <property name="monitor0" type="empty">\n\
-        <property name="workspace0" type="empty">\n\
-          <property name="last-image" type="string" value="/home/kasm-default-profile/.config/wallpaper.jpg"/>\n\
-          <property name="image-style" type="int" value="5"/>\n\
-        </property>\n\
-      </property>\n\
-    </property>\n\
-  </property>\n\
-</channel>\n' > /home/kasm-default-profile/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
 
-# Firefox wrapper pour root + set comme browser par défaut
+# Firefox wrapper pour root
 RUN printf '#!/bin/bash\nxhost +local:root 2>/dev/null\nexport HOME=/root\nexport MOZ_DISABLE_RDD_SANDBOX=1\nexport MOZ_DISABLE_GPU=1\nexec /usr/bin/firefox-esr --no-sandbox "$@"\n' > /usr/local/bin/firefox-root \
     && chmod +x /usr/local/bin/firefox-root \
     && sed -i 's|Exec=firefox-esr|Exec=firefox-root|g' /usr/share/applications/firefox-esr.desktop \
     && mkdir -p /home/kasm-default-profile/.config/xfce4 \
     && printf '[Default Applications]\nWebBrowser=firefox-esr.desktop\n' > /home/kasm-default-profile/.config/xfce4/helpers.rc
+
+# Remplacer Web Browser (planète bleue) par Firefox dans le panel
+RUN cat > /home/kasm-default-profile/.config/xfce4/panel/launcher-6/17389582522.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=firefox-root
+Icon=firefox-esr
+StartupNotify=true
+Terminal=false
+Name=Firefox ESR
+Comment=Browse the web
+EOF
+
+# Retirer Root Terminal Emulator du panel
+RUN rm /home/kasm-default-profile/.config/xfce4/panel/launcher-7/17389582524.desktop
+
+# Set wallpaper via hook post-démarrage
+RUN printf '#!/usr/bin/env bash\necho "Executing kasm_post_run_user.sh"\nxfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s /home/kasm-default-profile/.config/wallpaper.jpg --create -t string\nxfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style -s 5 --create -t int\n' > /dockerstartup/kasm_post_run_user.sh \
+    && chmod +x /dockerstartup/kasm_post_run_user.sh
 
 # Fix zsh permissions
 RUN chown -R root:root /usr/share/zsh /usr/local/share/zsh \
