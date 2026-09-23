@@ -60,14 +60,14 @@ RUN curl -sSL https://github.com/projectdiscovery/nuclei/releases/download/v3.3.
 # Setup Oh-My-Zsh dans kasm-default-profile (Kasm copie ce dir dans $HOME au démarrage)
 RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /home/kasm-default-profile/.oh-my-zsh \
     && cp /home/kasm-default-profile/.oh-my-zsh/templates/zshrc.zsh-template /home/kasm-default-profile/.zshrc \
-    && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="robbyrussell"/' /home/kasm-default-profile/.zshrc \
+    && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME=""/' /home/kasm-default-profile/.zshrc \
     && sed -i '1i ZSH_DISABLE_COMPFIX="true"' /home/kasm-default-profile/.zshrc
 
 # Install zsh-autosuggestions
 RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/kasm-default-profile/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-default-profile/.zshrc
 
-# Configure aliases et settings
+# Configure aliases, prompt Kali-style, et settings
 RUN printf '\
 alias ll="ls -la"\n\
 alias ports="ss -tulpn"\n\
@@ -78,10 +78,35 @@ export HISTSIZE=10000\n\
 export HISTFILE=~/.zsh_history\n\
 export SAVEHIST=10000\n\
 setopt HIST_IGNORE_DUPS\n\
+PROMPT='"'"'%F{blue}┌──(%F{red}%n㉿%m%F{blue})-[%F{white}%~%F{blue}]\n└─%F{red}%#%f '"'"'\n\
 ' >> /home/kasm-default-profile/.zshrc
 
 # Configure Vim
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-default-profile/.vimrc
+
+# Set default wallpaper
+COPY wallpaper.jpg /home/kasm-default-profile/.config/wallpaper.jpg
+RUN mkdir -p /home/kasm-default-profile/.config/xfce4/xfconf/xfce-perchannel-xml \
+    && printf '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-desktop" version="1.0">\n\
+  <property name="backdrop" type="empty">\n\
+    <property name="screen0" type="empty">\n\
+      <property name="monitor0" type="empty">\n\
+        <property name="workspace0" type="empty">\n\
+          <property name="last-image" type="string" value="/home/kasm-default-profile/.config/wallpaper.jpg"/>\n\
+          <property name="image-style" type="int" value="5"/>\n\
+        </property>\n\
+      </property>\n\
+    </property>\n\
+  </property>\n\
+</channel>\n' > /home/kasm-default-profile/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
+
+# Firefox wrapper pour root + set comme browser par défaut
+RUN printf '#!/bin/bash\nxhost +local:root 2>/dev/null\nexport HOME=/root\nexport MOZ_DISABLE_RDD_SANDBOX=1\nexport MOZ_DISABLE_GPU=1\nexec /usr/bin/firefox-esr --no-sandbox "$@"\n' > /usr/local/bin/firefox-root \
+    && chmod +x /usr/local/bin/firefox-root \
+    && sed -i 's|Exec=firefox-esr|Exec=firefox-root|g' /usr/share/applications/firefox-esr.desktop \
+    && mkdir -p /home/kasm-default-profile/.config/xfce4 \
+    && printf '[Default Applications]\nWebBrowser=firefox-esr.desktop\n' > /home/kasm-default-profile/.config/xfce4/helpers.rc
 
 # Fix zsh permissions
 RUN chown -R root:root /usr/share/zsh /usr/local/share/zsh \
