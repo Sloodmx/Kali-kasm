@@ -68,18 +68,19 @@ RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/k
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-default-profile/.zshrc
 
 # Configure aliases, prompt Kali-style, et settings
-RUN printf '\
-alias ll="ls -la"\n\
-alias ports="ss -tulpn"\n\
-alias myip="curl -s ifconfig.me"\n\
-alias cls=clear\n\
-alias grep="grep --color=auto"\n\
-export HISTSIZE=10000\n\
-export HISTFILE=~/.zsh_history\n\
-export SAVEHIST=10000\n\
-setopt HIST_IGNORE_DUPS\n\
-PROMPT='"'"'%F{blue}┌──(%F{red}%n㉿%m%F{blue})-[%F{white}%~%F{blue}]\n└─%F{red}%#%f '"'"'\n\
-' >> /home/kasm-default-profile/.zshrc
+RUN cat >> /home/kasm-default-profile/.zshrc << 'EOF'
+alias ll="ls -la"
+alias ports="ss -tulpn"
+alias myip="curl -s ifconfig.me"
+alias cls=clear
+alias grep="grep --color=auto"
+export HISTSIZE=10000
+export HISTFILE=~/.zsh_history
+export SAVEHIST=10000
+setopt HIST_IGNORE_DUPS
+PROMPT='%F{blue}┌──(%F{red}%n㉿%m%F{blue})-[%F{white}%~%F{blue}]
+└─%F{red}%#%f '
+EOF
 
 # Configure Vim
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-default-profile/.vimrc
