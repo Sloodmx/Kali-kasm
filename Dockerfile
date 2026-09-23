@@ -46,11 +46,6 @@ RUN apt-get update && apt-get install -y \
 # Clone SecLists repository
 RUN git clone --depth 1 https://github.com/danielmiessler/SecLists /usr/share/seclists
 
-# Install RustScan - toujours latest
-RUN RUSTSCAN_VERSION=$(curl -s https://api.github.com/repos/RustScan/RustScan/releases/latest | grep '"tag_name"' | cut -d'"' -f4) \
-    && curl -sSL "https://github.com/RustScan/RustScan/releases/download/${RUSTSCAN_VERSION}/rustscan_${RUSTSCAN_VERSION#v}_amd64.deb" -o rustscan.deb \
-    && dpkg -i rustscan.deb \
-    && rm rustscan.deb
 
 # Install Nuclei - toujours latest
 RUN NUCLEI_VERSION=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | grep '"tag_name"' | cut -d'"' -f4) \
@@ -88,27 +83,7 @@ EOF
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-default-profile/.vimrc
 
 # Set default wallpaper
-COPY wallpaper.jpg /home/kasm-default-profile/.config/wallpaper.jpg
-
-# Firefox wrapper pour root
-RUN printf '#!/bin/bash\nxhost +local:root 2>/dev/null\nexport HOME=/root\nexport MOZ_DISABLE_RDD_SANDBOX=1\nexport MOZ_DISABLE_GPU=1\nexec /usr/bin/firefox-esr --no-sandbox "$@"\n' > /usr/local/bin/firefox-root \
-    && chmod +x /usr/local/bin/firefox-root \
-    && sed -i 's|Exec=firefox-esr|Exec=firefox-root|g' /usr/share/applications/firefox-esr.desktop \
-    && mkdir -p /home/kasm-default-profile/.config/xfce4 \
-    && printf '[Default Applications]\nWebBrowser=firefox-esr.desktop\n' > /home/kasm-default-profile/.config/xfce4/helpers.rc
-
-# Remplacer Web Browser (planète bleue) par Firefox dans le panel
-RUN cat > /home/kasm-default-profile/.config/xfce4/panel/launcher-6/17389582522.desktop << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Exec=firefox-root
-Icon=firefox-esr
-StartupNotify=true
-Terminal=false
-Name=Firefox ESR
-Comment=Browse the web
-EOF
+COPY wallpaper.jpg /home/kasm-user/Desktop
 
 # Retirer Root Terminal Emulator du panel
 RUN rm /home/kasm-default-profile/.config/xfce4/panel/launcher-7/17389582524.desktop
