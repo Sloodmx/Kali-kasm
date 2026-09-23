@@ -111,9 +111,9 @@ setopt HIST_IGNORE_DUPS\n\
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
 
-# Change default shell to zsh for root and kasm-user
-RUN chsh -s /usr/bin/zsh root \
-    && chsh -s /usr/bin/zsh kasm-user 2>/dev/null || true
+# Force zsh for interactive terminals (chsh ineffective with Kasm launcher)
+RUN echo '[ -t 1 ] && exec /usr/bin/zsh -l' >> /root/.bashrc \
+    && echo '[ -t 1 ] && exec /usr/bin/zsh -l' >> /home/kasm-user/.bashrc
 
 # Install Python penetration testing tools bypassing APT conflicts
 RUN PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install --ignore-installed --no-build-isolation \
