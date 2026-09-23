@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,20 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: false
-          swap-storage: true
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,3 +35,5 @@ jobs:
           tags: ghcr.io/sloodmx/kali-custom:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false

@@ -57,29 +57,17 @@ RUN curl -sSL https://github.com/projectdiscovery/nuclei/releases/download/v3.3.
     && rm nuclei.zip \
     && chmod +x /usr/local/bin/nuclei
 
-# Environment variables for user 1000 home directory
-ENV HOME=/home/kasm-user
-ENV USER_HOME=/home/kasm-user
+# Setup Oh-My-Zsh dans kasm-default-profile (Kasm copie ce dir dans $HOME au démarrage)
+RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /home/kasm-default-profile/.oh-my-zsh \
+    && cp /home/kasm-default-profile/.oh-my-zsh/templates/zshrc.zsh-template /home/kasm-default-profile/.zshrc \
+    && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="robbyrussell"/' /home/kasm-default-profile/.zshrc \
+    && sed -i '1i ZSH_DISABLE_COMPFIX="true"' /home/kasm-default-profile/.zshrc
 
-# Setup Oh-My-Zsh for kasm-user
-RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /home/kasm-user/.oh-my-zsh \
-    && cp /home/kasm-user/.oh-my-zsh/templates/zshrc.zsh-template /home/kasm-user/.zshrc \
-    && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' /home/kasm-user/.zshrc
+# Install zsh-autosuggestions
+RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/kasm-default-profile/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
+    && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-default-profile/.zshrc
 
-# Setup Oh-My-Zsh for root
-RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /root/.oh-my-zsh \
-    && cp /root/.oh-my-zsh/templates/zshrc.zsh-template /root/.zshrc \
-    && sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' /root/.zshrc
-
-# Install zsh-autosuggestions plugin for both users
-RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/kasm-user/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
-    && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
-    && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-user/.zshrc \
-    && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /root/.zshrc \
-    && echo 'source /home/kasm-user/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /home/kasm-user/.zshrc \
-    && echo 'source /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /root/.zshrc
-
-# Configure shell aliases and settings for both users
+# Configure aliases et settings
 RUN printf '\
 alias ll="ls -la"\n\
 alias ports="ss -tulpn"\n\
@@ -90,43 +78,25 @@ export HISTSIZE=10000\n\
 export HISTFILE=~/.zsh_history\n\
 export SAVEHIST=10000\n\
 setopt HIST_IGNORE_DUPS\n\
-' >> /home/kasm-user/.zshrc \
-    && printf '\
-alias ll="ls -la"\n\
-alias ports="ss -tulpn"\n\
-alias myip="curl -s ifconfig.me"\n\
-alias cls=clear\n\
-alias grep="grep --color=auto"\n\
-export HISTSIZE=10000\n\
-export HISTFILE=~/.zsh_history\n\
-export SAVEHIST=10000\n\
-setopt HIST_IGNORE_DUPS\n\
-' >> /root/.zshrc
+' >> /home/kasm-default-profile/.zshrc
 
-# Configure Vim for both users
-RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
-    && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
+# Configure Vim
+RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-default-profile/.vimrc
 
-# Fix Zsh permissions, bypass compinit insecure directory checks, and clean cache
-RUN chown -R root:root /usr/share/zsh /usr/local/share/zsh && \
-    chmod -R 755 /usr/share/zsh /usr/local/share/zsh && \
-    chmod -R go-w /usr/share/zsh /usr/local/share/zsh && \
-    sed -i '1i ZSH_DISABLE_COMPFIX="true"' /root/.zshrc && \
-    sed -i '1i ZSH_DISABLE_COMPFIX="true"' /home/kasm-user/.zshrc && \
-    rm -f /root/.zcompdump* /home/kasm-user/.zcompdump* 2>/dev/null || true
+# Fix zsh permissions
+RUN chown -R root:root /usr/share/zsh /usr/local/share/zsh \
+    && chmod -R 755 /usr/share/zsh /usr/local/share/zsh \
+    && chmod -R go-w /usr/share/zsh /usr/local/share/zsh
 
-# Force zsh globally for interactive terminals
+# Force zsh globalement pour les terminaux interactifs
 RUN echo '[ -t 1 ] && [ -z "$ZSH_VERSION" ] && exec /usr/bin/zsh -l' >> /etc/bash.bashrc
 
-# Install Python penetration testing tools bypassing APT conflicts
+# Install Python penetration testing tools
 RUN PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install --ignore-installed --no-build-isolation \
     pwntools \
     bbot
 
-# Sync user profile to /etc/skel AFTER all configs are generated
-RUN cp -r /home/kasm-user/. /etc/skel/
-
-# Set final directory permissions for kasm-user (UID 1000)
-RUN chown -R 1000:1000 /home/kasm-user/ /etc/skel/
+# Permissions finales
+RUN chown -R 1000:1000 /home/kasm-default-profile/
 
 USER root
