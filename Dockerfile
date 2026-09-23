@@ -75,13 +75,9 @@ RUN git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /root/.oh-my-zsh 
 RUN git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/kasm-user/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /home/kasm-user/.zshrc \
-    && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /root/.zshrc
-
-# Fix compinit - use a real temp file, not /dev/null
-RUN sed -i '1s|^|ZSH_COMPDUMP=$(mktemp)\n|' /home/kasm-user/.zshrc \
-    && sed -i '1s|^|ZSH_COMPDUMP=$(mktemp)\n|' /root/.zshrc \
-    && printf '\nautoload -Uz compinit 2>/dev/null\ncompinit -u 2>/dev/null\n' >> /home/kasm-user/.zshrc \
-    && printf '\nautoload -Uz compinit 2>/dev/null\ncompinit -u 2>/dev/null\n' >> /root/.zshrc
+    && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions)/' /root/.zshrc \
+    && echo 'source /home/kasm-user/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /home/kasm-user/.zshrc \
+    && echo 'source /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /root/.zshrc
 
 # Configure shell aliases and settings for both users
 RUN printf '\
@@ -111,9 +107,16 @@ setopt HIST_IGNORE_DUPS\n\
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-user/.vimrc \
     && printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /root/.vimrc
 
-# Force zsh for interactive terminals (chsh ineffective with Kasm launcher)
-RUN echo '[ -t 1 ] && exec /usr/bin/zsh -l' >> /root/.bashrc \
-    && echo '[ -t 1 ] && exec /usr/bin/zsh -l' >> /home/kasm-user/.bashrc
+# Fix Zsh permissions, bypass compinit insecure directory checks, and clean cache
+RUN chown -R root:root /usr/share/zsh /usr/local/share/zsh && \
+    chmod -R 755 /usr/share/zsh /usr/local/share/zsh && \
+    chmod -R go-w /usr/share/zsh /usr/local/share/zsh && \
+    sed -i '1i ZSH_DISABLE_COMPFIX="true"' /root/.zshrc && \
+    sed -i '1i ZSH_DISABLE_COMPFIX="true"' /home/kasm-user/.zshrc && \
+    rm -f /root/.zcompdump* /home/kasm-user/.zcompdump* 2>/dev/null || true
+
+# Force zsh globally for interactive terminals
+RUN echo '[ -t 1 ] && [ -z "$ZSH_VERSION" ] && exec /usr/bin/zsh -l' >> /etc/bash.bashrc
 
 # Install Python penetration testing tools bypassing APT conflicts
 RUN PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install --ignore-installed --no-build-isolation \
