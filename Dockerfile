@@ -83,26 +83,12 @@ EOF
 RUN printf 'set number\nsyntax on\nset tabstop=4\nset autoindent\nset mouse=a\n' > /home/kasm-default-profile/.vimrc
 
 # Wallpaper personnalisé
-COPY wallpaper.jpg /usr/share/backgrounds/kali-custom-wallpaper.jpg
+COPY wallpaper.jpg /home/kasm-default-profile/Downloads/wallpaper.jpg
 
-# Appliquer automatiquement le wallpaper au démarrage de la session Kasm
-RUN printf '%s\n' \
-    '#!/usr/bin/env bash' \
-    'echo "Applying custom wallpaper..."' \
-    'WALLPAPER="/usr/share/backgrounds/kali-custom-wallpaper.jpg"' \
-    'if [ -f "$WALLPAPER" ]; then' \
-    '    xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s "$WALLPAPER" --create -t string' \
-    '    xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style -s 5 --create -t int' \
-    'fi' \
-    > /dockerstartup/kasm_post_run_user.sh \
-    && chmod +x /dockerstartup/kasm_post_run_user.sh
-    
+
 # Retirer Root Terminal Emulator du panel
 RUN rm /home/kasm-default-profile/.config/xfce4/panel/launcher-7/17389582524.desktop
 
-# Set wallpaper via hook post-démarrage
-RUN printf '#!/usr/bin/env bash\necho "Executing kasm_post_run_user.sh"\nxfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s /home/kasm-default-profile/.config/wallpaper.jpg --create -t string\nxfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style -s 5 --create -t int\n' > /dockerstartup/kasm_post_run_user.sh \
-    && chmod +x /dockerstartup/kasm_post_run_user.sh
 
 # Fix zsh permissions
 RUN chown -R root:root /usr/share/zsh /usr/local/share/zsh \
