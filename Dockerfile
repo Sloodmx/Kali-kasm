@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     git \
     vim \
+    nano \
     netcat-openbsd \
     wordlists \
     gobuster \
@@ -41,6 +42,13 @@ RUN apt-get update && apt-get install -y \
     amass \
     evil-winrm \
     netexec \
+    sqlmap \
+    dirsearch \
+    socat \
+    tcpdump \
+    jq \
+    htop \
+    xclip \
     && rm -rf /var/lib/apt/lists/*
 
 # SecLists
